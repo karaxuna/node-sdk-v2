@@ -22,7 +22,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepare": "tsup"
   },
   "keywords": [
     "infisical",
@@ -49,6 +50,7 @@
     "@smithy/protocol-http": "^5.3.8",
     "@smithy/signature-v4": "^5.3.8",
     "typescript": "^5.5.4",
+    "undici": "^7.0.0",
     "zod": "^3.23.8"
   },
   "engines": {

@@ -1,3 +1,4 @@
+import { Agent, type Dispatcher } from "undici";
 import { FetchHttpError } from "./fetch-errors";
 import { fetchWithRetry } from "./retry";
 
@@ -7,6 +8,12 @@ export interface ApiClientConfig {
 	baseURL: string;
 	headers?: Record<string, string>;
 	timeout?: number;
+	/**
+	 * Set to false to accept TLS certificates that fail verification (for
+	 * example a self-hosted instance whose certificate does not cover its
+	 * hostname). Defaults to true.
+	 */
+	rejectUnauthorized?: boolean;
 }
 
 export interface RequestConfig {
@@ -80,6 +87,7 @@ export class ApiClient {
 	private readonly baseURL: string;
 	private readonly defaultHeaders: Record<string, string>;
 	private readonly timeout: number;
+	private readonly dispatcher?: Dispatcher;
 
 	constructor(config: ApiClientConfig) {
 		this.baseURL = config.baseURL.endsWith("/")
@@ -87,6 +95,9 @@ export class ApiClient {
 			: `${config.baseURL}/`;
 		this.defaultHeaders = { ...(config.headers ?? {}) };
 		this.timeout = config.timeout ?? DEFAULT_TIMEOUT_MS;
+		if (config.rejectUnauthorized === false) {
+			this.dispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+		}
 	}
 
 	public setAccessToken(token: string) {
@@ -196,12 +207,16 @@ export class ApiClient {
 			const controller = new AbortController();
 			const timer = setTimeout(() => controller.abort(), timeoutMs);
 			try {
-				return await fetch(fullUrl, {
+				// `dispatcher` is undici's extension of RequestInit, which the DOM
+				// types do not declare.
+				const init: RequestInit & { dispatcher?: Dispatcher } = {
 					method,
 					headers,
 					body,
 					signal: controller.signal,
-				});
+					dispatcher: this.dispatcher,
+				};
+				return await fetch(fullUrl, init);
 			} finally {
 				clearTimeout(timer);
 			}

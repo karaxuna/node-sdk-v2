@@ -17,6 +17,12 @@ import KmsClient from "./custom/kms";
 
 type InfisicalSDKOptions = {
 	siteUrl?: string;
+	/**
+	 * Set to false to accept TLS certificates that fail verification (for
+	 * example a self-hosted instance whose certificate does not cover its
+	 * hostname). Defaults to true.
+	 */
+	rejectUnauthorized?: boolean;
 };
 
 class InfisicalSDK {
@@ -44,7 +50,10 @@ class InfisicalSDK {
 		const baseURL = options?.siteUrl || "https://app.infisical.com";
 
 		// Initialize the base API client
-		this.apiClient = new ApiClient({ baseURL });
+		this.apiClient = new ApiClient({
+			baseURL,
+			rejectUnauthorized: options?.rejectUnauthorized,
+		});
 
 		// Initialize API service instances
 		this.authApi = new AuthApi(this.apiClient);
